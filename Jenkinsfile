@@ -3,12 +3,6 @@ pipeline {
 
     stages {
 
-        stage('Получение исходного кода') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Установка зависимостей') {
             steps {
                 bat 'python -m venv .venv'
