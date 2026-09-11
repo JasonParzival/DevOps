@@ -1,0 +1,6 @@
+/.venv
+db.sqlite3
+/internet_shop/__pycache__
+/app/__pycache__
+media
+.pytest_cache/
