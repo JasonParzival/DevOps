@@ -8,8 +8,20 @@ from internet_shop.models import Customer
 from internet_shop.models import Order
 from internet_shop.models import OrderDetail
 
+from django.contrib.auth.models import User
+from rest_framework.test import APIClient
+
+class AuthenticatedTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_superuser(
+            username="testadmin",
+            password="testpassword"
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
 # Create your tests here.
-class ProductsViewsetTestCase(TestCase):
+class ProductsViewsetTestCase(AuthenticatedTestCase):
     def test_get_list(self):
         ctg = baker.make("Category")
         
@@ -92,7 +104,7 @@ class ProductsViewsetTestCase(TestCase):
         product.refresh_from_db()
         assert data['name'] == product.name
         
-class CategoriesViewsetTestCase(TestCase):
+class CategoriesViewsetTestCase(AuthenticatedTestCase):
     def test_get_list(self):
         ctg = baker.make("Category")
 
@@ -160,7 +172,7 @@ class CategoriesViewsetTestCase(TestCase):
         ctg.refresh_from_db()
         assert data['name'] == ctg.name
         
-class CustomersViewsetTestCase(TestCase):
+class CustomersViewsetTestCase(AuthenticatedTestCase):
     def test_get_list(self):
         cst = baker.make("Customer")
 
@@ -233,7 +245,7 @@ class CustomersViewsetTestCase(TestCase):
         cst.refresh_from_db()
         assert data['name'] == cst.name
         
-class OrdersViewsetTestCase(TestCase):
+class OrdersViewsetTestCase(AuthenticatedTestCase):
     def test_get_list(self):
         cst = baker.make("Customer")
 
@@ -255,9 +267,10 @@ class OrdersViewsetTestCase(TestCase):
         r = self.client.post(
             "/api/orders/",
             json.dumps({
+                "order_number": 1,
                 "date": "2025-10-10",
                 "customer": cst.id,
-                "status": "в процессе"
+                "status": "В обработке"
             }),
             content_type="application/json"
         )
@@ -303,9 +316,10 @@ class OrdersViewsetTestCase(TestCase):
         r = self.client.put(
             f'/api/orders/{order.id}/', 
             data=json.dumps({
+                "order_number": 1,
                 "date": "2025-10-10",
                 "customer": cst.id,
-                "status": "в процессе"
+                "status": "В обработке"
             }), 
             content_type='application/json'
         )
@@ -319,7 +333,7 @@ class OrdersViewsetTestCase(TestCase):
         order.refresh_from_db()
         assert data['date'] == str(order.date)
         
-class OrderDetailsViewsetTestCase(TestCase):
+class OrderDetailsViewsetTestCase(AuthenticatedTestCase):
     def test_get_list(self):
         cst = baker.make("Customer")
 

@@ -42,8 +42,6 @@ class Customer(models.Model):
     
     user = models.ForeignKey(User, verbose_name="Пользователь", on_delete=models.CASCADE, null=True)
     
-    otp_key = models.CharField("OTP ключ", max_length=255, null=True, blank=True)
-    
     class Meta:
         verbose_name = "Клиент"
         verbose_name_plural = "Клиенты"
