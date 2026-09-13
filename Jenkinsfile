@@ -36,6 +36,13 @@ pipeline {
                 bat '.venv\\Scripts\\python.exe -m pytest'
             }
         }
+
+        stage('Запуск приложения') {
+            steps {     
+                bat 'scripts\\start_backend.bat'
+                bat 'scripts\\start_frontend.bat'
+            }
+        }
     }
 }
 
