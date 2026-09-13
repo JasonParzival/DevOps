@@ -3,6 +3,13 @@ pipeline {
 
     stages {
 
+        stage('Проверка Node.js') {
+            steps {
+                bat 'node --version'
+                bat 'npm.cmd --version'
+            }
+        }
+        
         stage('Установка зависимостей') {
             steps {
                 bat 'python -m venv .venv'
