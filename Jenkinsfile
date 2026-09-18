@@ -43,6 +43,14 @@ pipeline {
                 bat 'scripts\\start_frontend.bat'
             }
         }
+
+        stage('Проверка запущенных приложений') {
+            steps {
+                bat 'timeout /t 5 /nobreak'
+                bat 'netstat -ano | findstr ":8000"'
+                bat 'netstat -ano | findstr ":5173"'
+            }
+        }
     }
 }
 
