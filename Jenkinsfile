@@ -37,10 +37,30 @@ pipeline {
             }
         }
 
+        stage('Очистка портов') {
+            steps {
+                powershell '''
+                $ports = @(8000, 5173)
+
+                foreach ($port in $ports) {
+                    $connections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+
+                    foreach ($connection in $connections) {
+                        Write-Host "Останавливаем PID $($connection.OwningProcess) на порту $port"
+                        Stop-Process -Id $connection.OwningProcess -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            '''
+            }
+        }
+
         stage('Запуск приложения') {
             steps {     
                 bat 'scripts\\start_backend.bat'
                 bat 'scripts\\start_frontend.bat'
+                timeout(time: 10, unit: 'SECONDS') {
+                    bat 'ping 127.0.0.1 -n 6 > nul'
+                }
             }
         }
 
