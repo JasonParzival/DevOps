@@ -74,4 +74,4 @@ pipeline {
 }
 
 
-// CI/CD test
+// проверка
