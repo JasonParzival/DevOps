@@ -54,4 +54,4 @@ pipeline {
 }
 
 
-// CI/CD test
+//чек
