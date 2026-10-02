@@ -56,7 +56,10 @@ pipeline {
                 branch 'main'
             }
 
-            steps {     
+            steps { 
+                echo "BRANCH_NAME = ${env.BRANCH_NAME}"
+                echo "Запускаем приложение"
+
                 bat 'scripts\\start_backend.bat'
                 bat 'scripts\\start_frontend.bat'
                 timeout(time: 10, unit: 'SECONDS') {
