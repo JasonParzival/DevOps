@@ -18,13 +18,6 @@ pipeline {
             }
         }
 
-        stage('Сборка Vue') {
-            steps {
-                bat 'cd client && npm.cmd install'
-                bat 'cd client && npm.cmd run build'
-            }
-        }
-
         stage('Миграции базы данных') {
             steps {
                 bat '.venv\\Scripts\\python.exe manage.py migrate --noinput'
@@ -38,6 +31,10 @@ pipeline {
         }
 
         stage('Очистка портов') {
+            when {
+                branch 'main'
+            }
+
             steps {
                 powershell '''
                 $ports = @(8000, 5173)
@@ -55,6 +52,10 @@ pipeline {
         }
 
         stage('Запуск приложения') {
+            when {
+                branch 'main'
+            }
+
             steps {     
                 bat 'scripts\\start_backend.bat'
                 bat 'scripts\\start_frontend.bat'
@@ -65,6 +66,10 @@ pipeline {
         }
 
         stage('Проверка запущенных приложений') {
+            when {
+                branch 'main'
+            }
+
             steps {
                 bat 'netstat -ano | findstr ":8000"'
                 bat 'netstat -ano | findstr ":5173"'
