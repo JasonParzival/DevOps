@@ -18,13 +18,6 @@ pipeline {
             }
         }
 
-        stage('Сборка Vue') {
-            steps {
-                bat 'cd client && npm.cmd install'
-                bat 'cd client && npm.cmd run build'
-            }
-        }
-
         stage('Миграции базы данных') {
             steps {
                 bat '.venv\\Scripts\\python.exe manage.py migrate --noinput'
@@ -37,14 +30,46 @@ pipeline {
             }
         }
 
+        stage('Очистка портов') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                powershell '''
+                $ports = @(8000, 5173)
+
+                foreach ($port in $ports) {
+                    $connections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+
+                    foreach ($connection in $connections) {
+                        Write-Host "Останавливаем PID $($connection.OwningProcess) на порту $port"
+                        Stop-Process -Id $connection.OwningProcess -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            '''
+            }
+        }
+
         stage('Запуск приложения') {
+            when {
+                branch 'main'
+            }
+
             steps {     
                 bat 'scripts\\start_backend.bat'
                 bat 'scripts\\start_frontend.bat'
+                timeout(time: 10, unit: 'SECONDS') {
+                    bat 'ping 127.0.0.1 -n 6 > nul'
+                }
             }
         }
 
         stage('Проверка запущенных приложений') {
+            when {
+                branch 'main'
+            }
+
             steps {
                 bat 'netstat -ano | findstr ":8000"'
                 bat 'netstat -ano | findstr ":5173"'
@@ -54,4 +79,3 @@ pipeline {
 }
 
 
-//чек

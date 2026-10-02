@@ -15,6 +15,7 @@ function logout() {
   <div id="app">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
+
         <a class="navbar-brand" href="#">!!!Интернет-магазин!!!123456fhehtr</a>
 
         <div class="navbar-nav">
