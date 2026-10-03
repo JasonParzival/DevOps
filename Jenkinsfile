@@ -30,16 +30,11 @@ pipeline {
             }
         }
 
-        stage('Проверка ветки') {
-            steps {
-                echo "BRANCH = ${env.BRANCH}"
-                echo "BRANCH_NAME = ${env.BRANCH_NAME}"
-            }
-        }
-
         stage('Очистка портов') {
             when {
-                branch 'main'
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
             }
 
             steps {
@@ -60,7 +55,9 @@ pipeline {
 
         stage('Запуск приложения') {
             when {
-                branch 'main'
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
             }
 
             steps {     
@@ -74,7 +71,9 @@ pipeline {
 
         stage('Проверка запущенных приложений') {
             when {
-                branch 'main'
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
             }
 
             steps {
