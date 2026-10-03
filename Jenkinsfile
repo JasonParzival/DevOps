@@ -30,6 +30,13 @@ pipeline {
             }
         }
 
+        stage('Проверка ветки') {
+            steps {
+                echo "BRANCH = ${env.BRANCH}"
+                echo "BRANCH_NAME = ${env.BRANCH_NAME}"
+            }
+        }
+
         stage('Очистка портов') {
             when {
                 branch 'main'
