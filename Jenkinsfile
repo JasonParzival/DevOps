@@ -49,7 +49,65 @@ pipeline {
                         Stop-Process -Id $connection.OwningProcess -Force -ErrorAction SilentlyContinue
                     }
                 }
-            '''
+                '''
+            }
+        }
+
+        stage('Подготовка deployment') {
+            when {
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
+            }
+
+            steps {
+                bat '''
+                if exist "C:\\ProgramData\\Jenkins\\deploy\\DevOps" rmdir /S /Q "C:\\ProgramData\\Jenkins\\deploy\\DevOps"
+
+                mkdir "C:\\ProgramData\\Jenkins\\deploy\\DevOps"
+
+                xcopy /E /I /Y /Q "." "C:\\ProgramData\\Jenkins\\deploy\\DevOps" /EXCLUDE:.deployignore
+                '''
+            }
+        }
+
+        stage('Установка deployment зависимостей') {
+            when {
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
+            }
+
+            steps {
+                bat '''
+                cd /d "C:\\ProgramData\\Jenkins\\deploy\\DevOps"
+
+                python -m venv .venv
+
+                .venv\\Scripts\\python.exe -m pip install --upgrade pip
+
+                .venv\\Scripts\\python.exe -m pip install -r requirements.txt
+
+                cd client
+
+                npm.cmd install
+                '''
+            }
+        }
+
+        stage('Миграции deployment базы') {
+            when {
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
+            }
+
+            steps {
+                bat '''
+                cd /d "C:\\ProgramData\\Jenkins\\deploy\\DevOps"
+
+                .venv\\Scripts\\python.exe manage.py migrate --noinput
+                '''
             }
         }
 
@@ -60,9 +118,10 @@ pipeline {
                 }
             }
 
-            steps { 
-                bat 'scripts\\start_backend.bat'
-                bat 'scripts\\start_frontend.bat'
+            steps {
+                bat 'C:\\ProgramData\\Jenkins\\deploy\\DevOps\\scripts\\start_backend.bat'
+                bat 'C:\\ProgramData\\Jenkins\\deploy\\DevOps\\scripts\\start_frontend.bat'
+
                 timeout(time: 10, unit: 'SECONDS') {
                     bat 'ping 127.0.0.1 -n 6 > nul'
                 }

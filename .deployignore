@@ -1,0 +1,6 @@
+\.git\
+.venv\
+__pycache__\
+.pytest_cache\
+client\node_modules\
+db.sqlite3

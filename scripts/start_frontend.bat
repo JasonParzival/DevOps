@@ -1,6 +1,6 @@
 @echo off
 
-cd /d "%~dp0..\client"
+cd /d "C:\ProgramData\Jenkins\deploy\DevOps\client"
 
 set JENKINS_NODE_COOKIE=dontKillMe
 
