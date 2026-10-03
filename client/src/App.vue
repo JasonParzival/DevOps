@@ -16,7 +16,7 @@ function logout() {
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
 
-        <a class="navbar-brand" href="#">!!!Интернет-магазин!!!Proverka!</a>
+        <a class="navbar-brand" href="#">Интернет-магазин</a>
 
         <div class="navbar-nav">
           <router-link to="/products" class="nav-link">Товары</router-link>

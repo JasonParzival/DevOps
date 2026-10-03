@@ -32,7 +32,9 @@ pipeline {
 
         stage('Очистка портов') {
             when {
-                branch 'main'
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
             }
 
             steps {
@@ -53,13 +55,12 @@ pipeline {
 
         stage('Запуск приложения') {
             when {
-                branch 'main'
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
             }
 
             steps { 
-                echo "BRANCH_NAME = ${env.BRANCH_NAME}"
-                echo "Запускаем приложение"
-
                 bat 'scripts\\start_backend.bat'
                 bat 'scripts\\start_frontend.bat'
                 timeout(time: 10, unit: 'SECONDS') {
@@ -70,7 +71,9 @@ pipeline {
 
         stage('Проверка запущенных приложений') {
             when {
-                branch 'main'
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
             }
 
             steps {
