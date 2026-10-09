@@ -39,12 +39,30 @@ pipeline {
         }
 
         stage('Проверка конфигурации Docker') {
+            when {
+                expression {
+                    env.BRANCH_NAME == 'main' ||
+                    env.GIT_BRANCH == 'origin/main' ||
+                    env.GIT_BRANCH == 'refs/remotes/origin/main' ||
+                    env.BRANCH == 'refs/heads/main'
+                }
+            }
+            
             steps {
                 bat 'docker compose -p devops config -q'
             }
         }
 
         stage('Сборка Docker-образов') {
+            when {
+                expression {
+                    env.BRANCH_NAME == 'main' ||
+                    env.GIT_BRANCH == 'origin/main' ||
+                    env.GIT_BRANCH == 'refs/remotes/origin/main' ||
+                    env.BRANCH == 'refs/heads/main'
+                }
+            }
+
             steps {
                 bat 'docker compose -p devops build'
             }
