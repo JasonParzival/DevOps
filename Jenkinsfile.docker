@@ -2,23 +2,75 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+        stage('Получение исходного кода') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Check Docker') {
+        stage('Проверка инструментов') {
             steps {
+                bat 'python --version'
+                bat 'node --version'
+                bat 'npm.cmd --version'
                 bat 'docker --version'
                 bat 'docker compose version'
-                bat 'docker compose config -q'
             }
         }
 
-        stage('Build Docker Images') {
+        stage('Установка зависимостей') {
             steps {
-                bat 'docker compose build'
+                bat 'python -m venv .venv'
+                bat '.venv\\Scripts\\python.exe -m pip install --upgrade pip'
+                bat '.venv\\Scripts\\python.exe -m pip install -r requirements.txt'
+            }
+        }
+
+        stage('Миграции базы данных для тестов') {
+            steps {
+                bat '.venv\\Scripts\\python.exe manage.py migrate --noinput'
+            }
+        }
+
+        stage('Запуск тестов') {
+            steps {
+                bat '.venv\\Scripts\\python.exe -m pytest'
+            }
+        }
+
+        stage('Проверка конфигурации Docker') {
+            steps {
+                bat 'docker compose -p devops config -q'
+            }
+        }
+
+        stage('Сборка Docker-образов') {
+            steps {
+                bat 'docker compose -p devops build'
+            }
+        }
+
+        stage('Деплой приложения') {
+            when {
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
+            }
+
+            steps {
+                bat 'docker compose -p devops up -d'
+            }
+        }
+
+        stage('Проверка запущенных контейнеров') {
+            when {
+                expression {
+                    env.BRANCH == 'refs/heads/main'
+                }
+            }
+
+            steps {
+                bat 'docker compose -p devops ps'
             }
         }
     }
