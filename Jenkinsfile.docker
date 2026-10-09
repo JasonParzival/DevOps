@@ -53,6 +53,9 @@ pipeline {
         stage('Деплой приложения') {
             when {
                 expression {
+                    env.BRANCH_NAME == 'main' ||
+                    env.GIT_BRANCH == 'origin/main' ||
+                    env.GIT_BRANCH == 'refs/remotes/origin/main' ||
                     env.BRANCH == 'refs/heads/main'
                 }
             }
@@ -65,6 +68,9 @@ pipeline {
         stage('Проверка запущенных контейнеров') {
             when {
                 expression {
+                    env.BRANCH_NAME == 'main' ||
+                    env.GIT_BRANCH == 'origin/main' ||
+                    env.GIT_BRANCH == 'refs/remotes/origin/main' ||
                     env.BRANCH == 'refs/heads/main'
                 }
             }
