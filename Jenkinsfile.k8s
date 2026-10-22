@@ -1,7 +1,9 @@
-// ЛР3: независимая Jenkins Job под Windows + Docker Desktop Kubernetes.
-// У старых Job остаются Jenkinsfile / Jenkinsfile.docker и их прежние настройки.
 pipeline {
     agent any
+
+    environment {
+        KUBECONFIG = credentials('lab3-kubeconfig')
+    }
 
     options {
         skipDefaultCheckout(true)
@@ -24,7 +26,6 @@ pipeline {
                 bat 'docker info --format "{{.OSType}}"'
                 bat 'kubectl version --client'
                 bat 'python --version'
-                // Только проверка. Не создаём секреты и не трогаем базу данных.
                 bat 'python lab3\\k8s\\ci_deploy.py --check-only'
             }
         }
@@ -63,7 +64,6 @@ pipeline {
 
         stage('Kubernetes: миграции и деплой') {
             steps {
-                // ci_deploy.py использует существующие БД, PVC и Secret; ничего не удаляет.
                 bat 'python lab3\\k8s\\ci_deploy.py --tag k8s-j%BUILD_NUMBER%'
             }
         }
@@ -81,7 +81,6 @@ pipeline {
 
     post {
         always {
-            // Удаляем ТОЛЬКО тестовый Compose-проект lab3ciN. Рабочий Compose и K8s не трогаем.
             bat(returnStatus: true, script: 'docker compose -p lab3ci%BUILD_NUMBER% -f lab3\\ci\\compose.yaml down -v --remove-orphans')
         }
     }
