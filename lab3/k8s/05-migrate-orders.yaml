@@ -1,0 +1,56 @@
+# Миграции выполняются ДО запуска Deployment. При повторном деплое Job будет пересоздан.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: lab3-migrate-orders
+  namespace: lab3
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 240
+  template:
+    metadata:
+      labels:
+        job: lab3-migrate-orders
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: migrate
+        image: lab3-orders:k8s-v1
+        imagePullPolicy: Never
+        command:
+        - python
+        - manage.py
+        - migrate
+        - --noinput
+        envFrom:
+        - configMapRef:
+            name: lab3-common
+        env:
+        - name: POSTGRES_DB
+          value: orders_db
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: POSTGRES_PASSWORD
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: DJANGO_ORDERS_SECRET_KEY
+        - name: INTERNAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: INTERNAL_API_KEY
+        - name: USERS_SERVICE_URL
+          value: http://users:8000
+        - name: CATALOG_SERVICE_URL
+          value: http://catalog:8000
+        resources:
+          requests:
+            cpu: 40m
+            memory: 64Mi
+          limits:
+            cpu: 350m
+            memory: 384Mi

@@ -1,0 +1,10 @@
+# ЛР3: локальные файлы Python, секреты и окружения не должны попадать в Git.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+*.sqlite3
+k8s/.secrets.generated.yaml

@@ -1,0 +1,70 @@
+# PostgreSQL с постоянным хранилищем. Три логические базы на одном сервере.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: lab3
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: lab3
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:17-alpine
+        ports:
+        - containerPort: 5432
+          name: pg
+        envFrom:
+        - configMapRef:
+            name: lab3-common
+        env:
+        - name: POSTGRES_DB
+          value: users_db
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -ec
+            - pg_isready -U "$POSTGRES_USER" -d users_db
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 75m
+            memory: 128Mi
+          limits:
+            cpu: 750m
+            memory: 768Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: postgres-data

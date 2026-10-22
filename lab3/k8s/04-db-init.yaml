@@ -1,0 +1,43 @@
+# Idempotent Job: создаёт catalog_db и orders_db, если их ещё нет.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: lab3-init-databases
+  namespace: lab3
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 240
+  template:
+    metadata:
+      labels:
+        job: lab3-init-databases
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: db-init
+        image: postgres:17-alpine
+        command:
+        - /bin/sh
+        - -ec
+        - "set -eu\nexport PGPASSWORD=\"$POSTGRES_PASSWORD\"\nfor db in catalog_db\
+          \ orders_db; do\n  exists=\"$(psql -X -v ON_ERROR_STOP=1 -h postgres -U\
+          \ \"$POSTGRES_USER\" -d users_db -Atqc \"SELECT count(*) FROM pg_database\
+          \ WHERE datname='$db'\")\"\n  if [ \"$exists\" = \"0\" ]; then\n    createdb\
+          \ -h postgres -U \"$POSTGRES_USER\" \"$db\"\n    echo \"Created $db\"\n\
+          \  else\n    echo \"$db exists\"\n  fi\ndone\n"
+        envFrom:
+        - configMapRef:
+            name: lab3-common
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: POSTGRES_PASSWORD
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 150m
+            memory: 128Mi

@@ -1,0 +1,143 @@
+# Этап 3: три независимых Django-микросервиса и три логические базы в PostgreSQL.
+# Корневой docker-compose.yml ЛР2 остаётся без изменений.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ${LAB3_POSTGRES_PASSWORD:-lab3_local_password}
+    volumes:
+      - lab3_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab3_users -d users_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  # Idempotent even when the old users_db volume already contains data.
+  catalog-db-init:
+    image: postgres:17-alpine
+    environment:
+      PGHOST: postgres
+      PGUSER: lab3_users
+      PGPASSWORD: ${LAB3_POSTGRES_PASSWORD:-lab3_local_password}
+    volumes:
+      - ./db/create_catalog_db.sh:/scripts/create_catalog_db.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/create_catalog_db.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  orders-db-init:
+    image: postgres:17-alpine
+    environment:
+      PGHOST: postgres
+      PGUSER: lab3_users
+      PGPASSWORD: ${LAB3_POSTGRES_PASSWORD:-lab3_local_password}
+    volumes:
+      - ./db/create_orders_db.sh:/scripts/create_orders_db.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/create_orders_db.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  users:
+    build:
+      context: ./services/users
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ${LAB3_POSTGRES_PASSWORD:-lab3_local_password}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ${LAB3_DJANGO_SECRET_KEY:-change-this-local-development-key}
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,users
+      INTERNAL_API_KEY: ${LAB3_INTERNAL_API_KEY:-change-this-local-internal-key}
+      ORDERS_SERVICE_URL: http://orders:8000
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - lab3_user_media:/app/media
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2
+
+  catalog:
+    build:
+      context: ./services/catalog
+    environment:
+      POSTGRES_DB: catalog_db
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ${LAB3_POSTGRES_PASSWORD:-lab3_local_password}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ${LAB3_CATALOG_SECRET_KEY:-change-this-local-catalog-key}
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,catalog
+      INTERNAL_API_KEY: ${LAB3_INTERNAL_API_KEY:-change-this-local-internal-key}
+      USERS_SERVICE_URL: http://users:8000
+    ports:
+      - "8004:8000"
+    depends_on:
+      catalog-db-init:
+        condition: service_completed_successfully
+      users:
+        condition: service_started
+    volumes:
+      - lab3_catalog_media:/app/media
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2
+
+  orders:
+    build:
+      context: ./services/orders
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ${LAB3_POSTGRES_PASSWORD:-lab3_local_password}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ${LAB3_ORDERS_SECRET_KEY:-change-this-local-orders-key}
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,orders
+      INTERNAL_API_KEY: ${LAB3_INTERNAL_API_KEY:-change-this-local-internal-key}
+      USERS_SERVICE_URL: http://users:8000
+      CATALOG_SERVICE_URL: http://catalog:8000
+    ports:
+      - "8005:8000"
+    depends_on:
+      orders-db-init:
+        condition: service_completed_successfully
+      users:
+        condition: service_started
+      catalog:
+        condition: service_started
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2
+
+  # Vue from the existing repository /client, with lab3-specific Nginx routes.
+  frontend:
+    build:
+      context: ..
+      dockerfile: lab3/frontend/Dockerfile
+    ports:
+      - "8082:80"
+    depends_on:
+      users:
+        condition: service_started
+      catalog:
+        condition: service_started
+      orders:
+        condition: service_started
+    volumes:
+      - lab3_user_media:/srv/media/users:ro
+      - lab3_catalog_media:/srv/media/catalog:ro
+    restart: unless-stopped
+
+volumes:
+  lab3_pgdata:
+  lab3_user_media:
+  lab3_catalog_media:

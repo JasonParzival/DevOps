@@ -1,0 +1,7 @@
+# Отдельный namespace: не трогаем Docker Compose и старые лабораторные.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lab3
+  labels:
+    app.kubernetes.io/part-of: lab3-shop

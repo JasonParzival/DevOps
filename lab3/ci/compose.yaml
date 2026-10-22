@@ -1,0 +1,68 @@
+# Отдельная тестовая среда для Jenkins. Без публикации портов и постоянных томов.
+# Project name задаётся через: -p lab3ci%BUILD_NUMBER%
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ci_only_not_a_production_secret
+      POSTGRES_DB: users_db
+    volumes:
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lab3_users -d users_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+
+  users-tests:
+    image: lab3-users:k8s-j${BUILD_NUMBER:?BUILD_NUMBER is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ci_only_not_a_production_secret
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ci-test-key-not-for-production
+      DJANGO_ALLOWED_HOSTS: localhost,users
+      INTERNAL_API_KEY: ci-internal-key-not-for-production
+      ORDERS_SERVICE_URL: http://orders:8000
+    command: ["python", "manage.py", "test", "--noinput"]
+
+  catalog-tests:
+    image: lab3-catalog:k8s-j${BUILD_NUMBER:?BUILD_NUMBER is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: catalog_db
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ci_only_not_a_production_secret
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ci-test-key-not-for-production
+      DJANGO_ALLOWED_HOSTS: localhost,catalog
+      INTERNAL_API_KEY: ci-internal-key-not-for-production
+      USERS_SERVICE_URL: http://users:8000
+    command: ["python", "manage.py", "test", "--noinput"]
+
+  orders-tests:
+    image: lab3-orders:k8s-j${BUILD_NUMBER:?BUILD_NUMBER is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: lab3_users
+      POSTGRES_PASSWORD: ci_only_not_a_production_secret
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ci-test-key-not-for-production
+      DJANGO_ALLOWED_HOSTS: localhost,orders
+      INTERNAL_API_KEY: ci-internal-key-not-for-production
+      USERS_SERVICE_URL: http://users:8000
+      CATALOG_SERVICE_URL: http://catalog:8000
+    command: ["python", "manage.py", "test", "--noinput"]

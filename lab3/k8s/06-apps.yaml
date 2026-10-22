@@ -1,0 +1,374 @@
+# Все 4 сервиса по 2 реплики. Внутренние DNS-имена совпадают с Docker Compose.
+apiVersion: v1
+kind: Service
+metadata:
+  name: users
+  namespace: lab3
+spec:
+  selector:
+    app: users
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users
+  namespace: lab3
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: users
+  template:
+    metadata:
+      labels:
+        app: users
+    spec:
+      containers:
+      - name: users
+        image: lab3-users:k8s-v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: lab3-common
+        env:
+        - name: POSTGRES_DB
+          value: users_db
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: POSTGRES_PASSWORD
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: DJANGO_USERS_SECRET_KEY
+        - name: INTERNAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: INTERNAL_API_KEY
+        - name: ORDERS_SERVICE_URL
+          value: http://orders:8000
+        readinessProbe:
+          httpGet:
+            path: /health/ready/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health/live/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 35m
+            memory: 96Mi
+          limits:
+            cpu: 450m
+            memory: 512Mi
+        volumeMounts:
+        - name: media
+          mountPath: /app/media
+      volumes:
+      - name: media
+        persistentVolumeClaim:
+          claimName: users-media
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog
+  namespace: lab3
+spec:
+  selector:
+    app: catalog
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog
+  namespace: lab3
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: catalog
+  template:
+    metadata:
+      labels:
+        app: catalog
+    spec:
+      containers:
+      - name: catalog
+        image: lab3-catalog:k8s-v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: lab3-common
+        env:
+        - name: POSTGRES_DB
+          value: catalog_db
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: POSTGRES_PASSWORD
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: DJANGO_CATALOG_SECRET_KEY
+        - name: INTERNAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: INTERNAL_API_KEY
+        - name: USERS_SERVICE_URL
+          value: http://users:8000
+        readinessProbe:
+          httpGet:
+            path: /health/ready/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health/live/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 35m
+            memory: 96Mi
+          limits:
+            cpu: 450m
+            memory: 512Mi
+        volumeMounts:
+        - name: media
+          mountPath: /app/media
+      volumes:
+      - name: media
+        persistentVolumeClaim:
+          claimName: catalog-media
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders
+  namespace: lab3
+spec:
+  selector:
+    app: orders
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  namespace: lab3
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: orders
+  template:
+    metadata:
+      labels:
+        app: orders
+    spec:
+      containers:
+      - name: orders
+        image: lab3-orders:k8s-v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: lab3-common
+        env:
+        - name: POSTGRES_DB
+          value: orders_db
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: POSTGRES_PASSWORD
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: DJANGO_ORDERS_SECRET_KEY
+        - name: INTERNAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: lab3-secrets
+              key: INTERNAL_API_KEY
+        - name: USERS_SERVICE_URL
+          value: http://users:8000
+        - name: CATALOG_SERVICE_URL
+          value: http://catalog:8000
+        readinessProbe:
+          httpGet:
+            path: /health/ready/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health/live/
+            port: 8000
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 35m
+            memory: 96Mi
+          limits:
+            cpu: 450m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: lab3
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: lab3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: lab3-frontend:k8s-v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: users-media
+          mountPath: /srv/media/users
+          readOnly: true
+        - name: catalog-media
+          mountPath: /srv/media/catalog
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 2
+        resources:
+          requests:
+            cpu: 20m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: users-media
+        persistentVolumeClaim:
+          claimName: users-media
+      - name: catalog-media
+        persistentVolumeClaim:
+          claimName: catalog-media

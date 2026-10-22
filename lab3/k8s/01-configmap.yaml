@@ -1,0 +1,12 @@
+# Только несекретные настройки. Ключи и пароли генерирует deploy.py.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lab3-common
+  namespace: lab3
+data:
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: '5432'
+  POSTGRES_USER: lab3_users
+  DJANGO_DEBUG: '0'
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,users,catalog,orders
